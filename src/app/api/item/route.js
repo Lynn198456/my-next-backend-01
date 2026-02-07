@@ -56,14 +56,14 @@ export async function POST(req) {
   try {
     const body = await req.json();
 
-    const itemName = (body.itemName ?? "").trim();
-    const itemCategory = (body.itemCategory ?? "").trim();
-    const itemPrice = Number(body.itemPrice);
+    const itemNameRaw = body.itemName != null ? String(body.itemName).trim() : "";
+    const itemCategoryRaw = body.itemCategory != null ? String(body.itemCategory).trim() : "";
+    const itemPriceRaw = body.itemPrice != null ? Number(body.itemPrice) : null;
     const status = String(body.status ?? "ACTIVE").trim().toUpperCase();
 
-    if (!itemName || !itemCategory || Number.isNaN(itemPrice)) {
+    if (itemPriceRaw != null && Number.isNaN(itemPriceRaw)) {
       return NextResponse.json(
-        { message: "Missing/invalid fields: itemName, itemCategory, itemPrice" },
+        { message: "Invalid field: itemPrice" },
         { status: 400, headers: corsHeaders }
       );
     }
@@ -74,14 +74,17 @@ export async function POST(req) {
     const client = await getClientPromise();
     const db = client.db(DB_NAME);
 
-    const result = await db.collection(COLLECTION).insertOne({
-      itemName,
-      itemCategory,
-      itemPrice,
+    const insertDoc = {
       status: safeStatus,
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    };
+
+    if (itemNameRaw) insertDoc.itemName = itemNameRaw;
+    if (itemCategoryRaw) insertDoc.itemCategory = itemCategoryRaw;
+    if (itemPriceRaw != null) insertDoc.itemPrice = itemPriceRaw;
+
+    const result = await db.collection(COLLECTION).insertOne(insertDoc);
 
     return NextResponse.json(
       { id: result.insertedId },
