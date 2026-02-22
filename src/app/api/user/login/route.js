@@ -1,16 +1,18 @@
-import corsHeaders from "@/lib/cors";
+import { getCorsHeaders } from "@/lib/cors";
 import { getClientPromise } from "@/lib/mongodb";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 const JWT_SECRET = process.env.JWT_SECRET || "mydefaultjwtsecret"; // Use a strong secret in production
 export async function OPTIONS(req) {
+ const corsHeaders = getCorsHeaders(req);
  return new Response(null, {
  status: 200,
  headers: corsHeaders,
  });
 }
 export async function POST(req) {
+ const corsHeaders = getCorsHeaders(req);
  const data = await req.json(); const { email, password } = data;
  if (!email || !password) {
  return NextResponse.json({

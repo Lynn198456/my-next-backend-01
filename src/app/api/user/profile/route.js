@@ -1,5 +1,5 @@
-import { verifyJWT } from "@/lib/auth";
-import corsHeaders from "@/lib/cors";
+import { verifyJWTWithReason } from "@/lib/auth";
+import { getCorsHeaders } from "@/lib/cors";
 import { getClientPromise } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import crypto from "crypto";
@@ -81,14 +81,17 @@ function detectImageExtension(buffer) {
 }
 
 export async function OPTIONS(req) {
+ const corsHeaders = getCorsHeaders(req);
  return new Response(null, {
  status: 200,
  headers: corsHeaders,
  });
 }
 export async function GET (req) {
- const user = verifyJWT(req);
- if (!user) {
+ const corsHeaders = getCorsHeaders(req);
+ const auth = verifyJWTWithReason(req);
+ if (!auth.user) {
+ console.log("Profile GET auth failed:", auth.reason);
  return NextResponse.json(
  {
  message: "Unauthorized"},
@@ -98,6 +101,7 @@ export async function GET (req) {
  }
  );
  }
+ const user = auth.user;
  try {
  const client = await getClientPromise();
  const db = client.db("wad-01");
@@ -129,13 +133,16 @@ export async function GET (req) {
 }
 
 export async function PUT(req) {
-  const user = verifyJWT(req);
-  if (!user) {
+  const corsHeaders = getCorsHeaders(req);
+  const auth = verifyJWTWithReason(req);
+  if (!auth.user) {
+    console.log("Profile PUT auth failed:", auth.reason);
     return NextResponse.json(
       { message: "Unauthorized" },
       { status: 401, headers: corsHeaders }
     );
   }
+  const user = auth.user;
 
   try {
     const formData = await req.formData();
